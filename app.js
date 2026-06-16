@@ -1,6 +1,7 @@
 import { calculateTotalFootprint, COUNTRY_COMPARISONS } from './calculator.js';
 import { ACTIONS_DATABASE, getRecommendedActions } from './actions.js';
 import { QuizSession } from './quiz.js';
+import { getGeminiResponse, getLocalFallbackResponse } from './ai.js';
 
 // Application State
 const STATE = {
@@ -33,7 +34,9 @@ const STATE = {
   activeActions: [], // Array of action IDs
   unlockedBadges: {}, // object mapping badgeId -> date string
   quizHighscore: 0,
-  calculatedOnce: false
+  calculatedOnce: false,
+  geminiApiKey: '',
+  chatHistory: [] // conversational chat history
 };
 
 // Badges definition
@@ -242,6 +245,14 @@ function loadStateFromLocalStorage() {
     try {
       const parsed = JSON.parse(saved);
       Object.assign(STATE, parsed);
+      
+      if (STATE.geminiApiKey) {
+        setTimeout(() => {
+          const keyInput = document.getElementById('input-api-key');
+          if (keyInput) keyInput.value = STATE.geminiApiKey;
+          updateKeyStatusUI(true);
+        }, 100);
+      }
     } catch (e) {
       console.error("Failed to parse local storage state", e);
     }
@@ -1004,4 +1015,160 @@ function showAchievementToast(badge) {
 
 function hideAchievementToast() {
   DOM.achievementToast.classList.remove('show');
+}
+
+// --- AI ECO-ADVISOR CONTROLLER ---
+function updateKeyStatusUI(isSaved) {
+  const statusEl = document.getElementById('api-key-status');
+  const statusTextEl = document.getElementById('api-key-status-text');
+  if (!statusEl || !statusTextEl) return;
+  
+  if (isSaved) {
+    statusEl.className = 'key-status-text saved';
+    statusTextEl.textContent = 'Active (Gemini 1.5 Flash Connected)';
+  } else {
+    statusEl.className = 'key-status-text missing';
+    statusTextEl.textContent = 'Demo Mode (Local templates active)';
+  }
+}
+
+window.saveGeminiKey = function() {
+  const keyInput = document.getElementById('input-api-key');
+  if (!keyInput) return;
+  const key = keyInput.value.trim();
+  
+  STATE.geminiApiKey = key;
+  saveStateToLocalStorage();
+  updateKeyStatusUI(!!key);
+  
+  const chatLog = document.getElementById('chat-messages-log');
+  const confirmMsg = document.createElement('div');
+  confirmMsg.className = 'chat-message ai';
+  confirmMsg.innerHTML = key 
+    ? `<p><strong>Aura Eco-Advisor:</strong> Gemini API Key saved successfully. Real-time conversations are now active! How can I consult you today?</p>`
+    : `<p><strong>Aura Eco-Advisor:</strong> API Key removed. Reverted to local demo templates.</p>`;
+  chatLog.appendChild(confirmMsg);
+  chatLog.scrollTop = chatLog.scrollHeight;
+};
+
+window.sendUserChatMessage = async function() {
+  const inputEl = document.getElementById('input-chat-message');
+  if (!inputEl) return;
+  const userText = inputEl.value.trim();
+  if (!userText) return;
+
+  // Clear input
+  inputEl.value = '';
+
+  const chatLog = document.getElementById('chat-messages-log');
+  if (!chatLog) return;
+  
+  // 1. Render User Message
+  const userBubble = document.createElement('div');
+  userBubble.className = 'chat-message user';
+  userBubble.textContent = userText;
+  chatLog.appendChild(userBubble);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
+  // 2. Render Typing Indicator
+  const typingBubble = document.createElement('div');
+  typingBubble.className = 'chat-message ai';
+  typingBubble.id = 'ai-typing-indicator';
+  typingBubble.innerHTML = `
+    <div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  chatLog.appendChild(typingBubble);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
+  // Formulate history format for api
+  const formattedHistory = STATE.chatHistory.map(msg => ({
+    role: msg.sender === 'user' ? 'user' : 'model',
+    text: msg.text
+  }));
+
+  const footprint = calculateTotalFootprint(
+    STATE.calculatorInputs.energy,
+    STATE.calculatorInputs.transport,
+    STATE.calculatorInputs.food,
+    STATE.calculatorInputs.waste
+  );
+
+  let responseText = '';
+  let isError = false;
+
+  try {
+    if (STATE.geminiApiKey) {
+      responseText = await getGeminiResponse(userText, STATE.geminiApiKey, footprint, formattedHistory);
+    } else {
+      responseText = getLocalFallbackResponse(userText, footprint);
+    }
+  } catch (err) {
+    responseText = `Error: ${err.message || 'Failed to connect to Gemini API. Please verify your internet connection or API Key correctness.'}`;
+    isError = true;
+  }
+
+  // Remove typing indicator
+  const typingEl = document.getElementById('ai-typing-indicator');
+  if (typingEl) typingEl.remove();
+
+  // 3. Render AI Response
+  const aiBubble = document.createElement('div');
+  aiBubble.className = isError ? 'chat-message system-error' : 'chat-message ai';
+  
+  if (isError) {
+    aiBubble.textContent = responseText;
+  } else {
+    aiBubble.innerHTML = `<strong>Aura Eco-Advisor:</strong> ${parseMarkdown(responseText)}`;
+  }
+  
+  chatLog.appendChild(aiBubble);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
+  // Record in state history
+  if (!isError) {
+    STATE.chatHistory.push({ sender: 'user', text: userText });
+    STATE.chatHistory.push({ sender: 'ai', text: responseText });
+    if (STATE.chatHistory.length > 20) {
+      STATE.chatHistory.shift();
+      STATE.chatHistory.shift();
+    }
+    saveStateToLocalStorage();
+  }
+};
+
+window.sendQuickPrompt = function(promptText) {
+  const inputEl = document.getElementById('input-chat-message');
+  if (inputEl) {
+    inputEl.value = promptText;
+    window.sendUserChatMessage();
+  }
+};
+
+function parseMarkdown(text) {
+  // Very simple client-side markdown parser
+  let html = text
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^\* (.*$)/gim, '<li>$1</li>')
+    .replace(/^\d+\.\s(.*$)/gim, '<li>$1</li>');
+  
+  html = html.replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>');
+  html = html.replace(/<\/ul>\s*<ul>/g, '');
+  
+  const paragraphs = html.split(/\n\n+/);
+  return paragraphs.map(p => {
+    p = p.trim();
+    if (!p) return '';
+    if (p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<ol') || p.startsWith('<li')) {
+      return p;
+    }
+    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+  }).join('');
 }

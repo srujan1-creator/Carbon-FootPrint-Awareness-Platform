@@ -63,6 +63,12 @@
             Achievements
           </button>
         </li>
+        <li class="nav-item">
+          <button data-view="ai">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4M8 15h.01M16 15h.01"></path></svg>
+            AI Advisor
+          </button>
+        </li>
       </ul>
     </nav>
 
@@ -633,6 +639,74 @@
 
         <div class="achievements-grid" id="achievements-list">
           <!-- Dynamic achievements rendered by app.js -->
+        </div>
+      </section>
+
+      <!-- ==================== 6. AI ADVISOR VIEW ==================== -->
+      <section id="ai-view" class="view-section">
+        <div class="section-header">
+          <h1>AI Eco-Advisor</h1>
+          <p class="section-subtitle">Live, personalized climate action recommendations powered by Google Gemini AI.</p>
+        </div>
+
+        <div class="ai-view-layout">
+          
+          <!-- Sidebar: Setup & Prompts -->
+          <div class="ai-sidebar">
+            
+            <!-- API Key card -->
+            <div class="glass-panel api-key-setup">
+              <h3 style="font-size:1.05rem; font-weight:700;">Gemini API Configuration</h3>
+              <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
+                Enter a Google Gemini API Key to enable conversational insights. Keys are saved locally.
+              </p>
+              <div class="api-key-input-container">
+                <input type="password" id="input-api-key" placeholder="Paste Gemini API Key...">
+                <button class="btn-save-key" onclick="saveGeminiKey()">Save</button>
+              </div>
+              <div class="key-status-text missing" id="api-key-status">
+                <span>●</span> <span id="api-key-status-text">Demo Mode (No key configured)</span>
+              </div>
+            </div>
+
+            <!-- Quick Prompts Card -->
+            <div class="glass-panel quick-prompts-card">
+              <h3 style="font-size:1.05rem; font-weight:700;">Quick Advisor Inquiries</h3>
+              <div class="quick-prompt-list">
+                <button class="quick-prompt-btn" onclick="sendQuickPrompt('Analyze my current footprint and give me a summary.')">
+                  📊 Analyze Footprint Profile
+                </button>
+                <button class="quick-prompt-btn" onclick="sendQuickPrompt('Suggest a customized home energy conservation plan based on my utility metrics.')">
+                  ⚡ Home Energy Savings Plan
+                </button>
+                <button class="quick-prompt-btn" onclick="sendQuickPrompt('What are some effective ways to reduce my car commute emissions?')">
+                  🚗 Car Commute Adjustments
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Main Chat Panel -->
+          <div class="glass-panel chat-container">
+            <!-- Scrollable chat thread log -->
+            <div class="chat-messages-log" id="chat-messages-log">
+              <!-- Render default greeting -->
+              <div class="chat-message ai">
+                <p><strong>Aura Eco-Advisor:</strong> Hello! I am your personal carbon reduction assistant. I can analyze your metrics, suggest plant-based meal swaps, explain climate science, or draft custom action plans.</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">How can I help you improve your ecological footprint today?</p>
+              </div>
+            </div>
+
+            <!-- Chat inputs bar -->
+            <div class="chat-input-bar">
+              <input type="text" id="input-chat-message" placeholder="Ask Eco-Advisor about carbon reductions..." onkeydown="if(event.key === 'Enter') sendUserChatMessage()">
+              <button class="btn-send-chat" onclick="sendUserChatMessage()" aria-label="Send Message">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </button>
+            </div>
+          </div>
+
         </div>
       </section>
 
