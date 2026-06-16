@@ -40,18 +40,19 @@ def init_db():
 # Helper to run database operations
 def db_query(query, args=(), one=False, commit=False):
     conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute(query, args)
-    
-    if commit:
-        conn.commit()
-        conn.close()
-        return True
+    try:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(query, args)
         
-    rv = cursor.fetchall()
-    conn.close()
-    return (rv[0] if rv else None) if one else rv
+        if commit:
+            conn.commit()
+            return True
+            
+        rv = cursor.fetchall()
+        return (rv[0] if rv else None) if one else rv
+    finally:
+        conn.close()
 
 @app.route("/")
 def index():
@@ -184,6 +185,18 @@ Guidelines for your response:
     except Exception as e:
         return jsonify({"error": f"Connection Error: {str(e)}"}), 500
 
+@app.before_request
+def block_sensitive_files():
+    path = request.path.lower()
+    if (path.endswith('.py') or 
+        path.endswith('.db') or 
+        path.endswith('.git') or 
+        path.endswith('.gitignore') or 
+        path.endswith('requirements.txt') or 
+        path.startswith('/.git') or
+        path.startswith('/__pycache__')):
+        return "Access Denied", 403
+
 @app.after_request
 def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -191,6 +204,8 @@ def add_security_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Content-Security-Policy'] = "default-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
     response.headers['Referrer-Policy'] = 'no-referrer-when-downgrade'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Permissions-Policy'] = 'geolocation=(), camera=(), microphone=()'
     return response
 
 if __name__ == "__main__":

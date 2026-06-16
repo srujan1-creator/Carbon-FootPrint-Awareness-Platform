@@ -255,6 +255,13 @@ function setupEventListeners() {
       selectFoodOption(card, 'food-diet-options');
       liveUpdateCalculatorPreview();
     });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectFoodOption(card, 'food-diet-options');
+        liveUpdateCalculatorPreview();
+      }
+    });
   });
 
   const wasteCards = document.querySelectorAll('#food-waste-options .option-card');
@@ -262,6 +269,13 @@ function setupEventListeners() {
     card.addEventListener('click', () => {
       selectFoodOption(card, 'food-waste-options');
       liveUpdateCalculatorPreview();
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectFoodOption(card, 'food-waste-options');
+        liveUpdateCalculatorPreview();
+      }
     });
   });
 
@@ -528,56 +542,64 @@ function renderDashboard() {
   
   // Tip Rendering
   renderDynamicTip(footprint.breakdown);
+
+  // Animate comparison bars
+  animateComparisonBars();
 }
 
 function renderDashboardCharts(footprint) {
   const ctx = document.getElementById('carbon-donut-chart').getContext('2d');
-  
-  if (chartInstance) {
-    chartInstance.destroy();
-  }
-
   const hasData = STATE.calculatedOnce && footprint.total > 0;
   const dataValues = hasData 
     ? [footprint.breakdown.energy, footprint.breakdown.transport, footprint.breakdown.food, footprint.breakdown.waste]
     : [1, 1, 1, 1]; // neutral placeholders if not calculated
 
-  chartInstance = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Home Energy', 'Transportation', 'Food & Diet', 'Waste & recycling'],
-      datasets: [{
-        data: dataValues,
-        backgroundColor: [
-          '#f59e0b', // Amber
-          '#06b6d4', // Teal/Cyan
-          '#10b981', // Emerald
-          '#c084fc'  // Purple
-        ],
-        borderWidth: 0,
-        hoverOffset: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          enabled: hasData,
-          callbacks: {
-            label: function(context) {
-              const val = context.raw;
-              const pct = ((val / footprint.total) * 100).toFixed(0);
-              return `${context.label}: ${val.toLocaleString()} kg CO2e (${pct}%)`;
+  if (chartInstance) {
+    chartInstance.data.datasets[0].data = dataValues;
+    chartInstance.options.plugins.tooltip.enabled = hasData;
+    chartInstance.options.plugins.tooltip.callbacks.label = function(context) {
+      const val = context.raw;
+      const pct = footprint.total > 0 ? ((val / footprint.total) * 100).toFixed(0) : 0;
+      return `${context.label}: ${val.toLocaleString()} kg CO2e (${pct}%)`;
+    };
+    chartInstance.update();
+  } else {
+    chartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Home Energy', 'Transportation', 'Food & Diet', 'Waste & recycling'],
+        datasets: [{
+          data: dataValues,
+          backgroundColor: [
+            '#f59e0b', // Amber
+            '#06b6d4', // Teal/Cyan
+            '#10b981', // Emerald
+            '#c084fc'  // Purple
+          ],
+          borderWidth: 0,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            enabled: hasData,
+            callbacks: {
+              label: function(context) {
+                const val = context.raw;
+                const pct = footprint.total > 0 ? ((val / footprint.total) * 100).toFixed(0) : 0;
+                return `${context.label}: ${val.toLocaleString()} kg CO2e (${pct}%)`;
+              }
             }
           }
-        }
-      },
-      cutout: '72%'
-    }
-  });
-
+        },
+        cutout: '72%'
+      }
+    });
+  }
   updateProjections();
 }
 
@@ -762,39 +784,40 @@ function saveCalculatorInputsByStep(stepIndex) {
 
 // --- INTERACTIVE: LIVE CALCULATOR PREVIEW ---
 function liveUpdateCalculatorPreview() {
+  const inputs = STATE.calculatorInputs;
+  
   // Save current fields (even if not finalized)
-  const currentInputs = {
-    energy: {
-      electricityKwh: Number(document.getElementById('in-electricity').value) || 0,
-      cleanEnergyShare: Number(document.getElementById('in-clean-energy').value) || 0,
-      gasKwh: Number(document.getElementById('in-gas').value) || 0,
-      gasTherms: 0,
-      heatingOilLiters: Number(document.getElementById('in-heating-oil').value) || 0,
-      householdMembers: Number(document.getElementById('in-household').value) || 1
-    },
-    transport: {
-      carKmPerWeek: Number(document.getElementById('in-car-km').value) || 0,
-      carFuelType: document.getElementById('in-car-fuel').value,
-      busKmPerWeek: Number(document.getElementById('in-bus-km').value) || 0,
-      trainKmPerWeek: Number(document.getElementById('in-train-km').value) || 0,
-      shortHaulFlights: Number(document.getElementById('in-short-flights').value) || 0,
-      longHaulFlights: Number(document.getElementById('in-long-flights').value) || 0
-    },
-    food: {
-      dietType: document.querySelector('#food-diet-options .option-card.selected').getAttribute('data-value'),
-      foodWasteLevel: document.querySelector('#food-waste-options .option-card.selected').getAttribute('data-value')
-    },
-    waste: {
-      wasteBagsPerWeek: Number(document.getElementById('in-waste-bags').value) || 0,
-      recyclingLevel: document.getElementById('in-recycling').value
-    }
-  };
+  inputs.energy.electricityKwh = Number(document.getElementById('in-electricity').value) || 0;
+  inputs.energy.cleanEnergyShare = Number(document.getElementById('in-clean-energy').value) || 0;
+  inputs.energy.gasKwh = Number(document.getElementById('in-gas').value) || 0;
+  inputs.energy.heatingOilLiters = Number(document.getElementById('in-heating-oil').value) || 0;
+  inputs.energy.householdMembers = Number(document.getElementById('in-household').value) || 1;
+
+  inputs.transport.carKmPerWeek = Number(document.getElementById('in-car-km').value) || 0;
+  inputs.transport.carFuelType = document.getElementById('in-car-fuel').value;
+  inputs.transport.busKmPerWeek = Number(document.getElementById('in-bus-km').value) || 0;
+  inputs.transport.trainKmPerWeek = Number(document.getElementById('in-train-km').value) || 0;
+  inputs.transport.shortHaulFlights = Number(document.getElementById('in-short-flights').value) || 0;
+  inputs.transport.longHaulFlights = Number(document.getElementById('in-long-flights').value) || 0;
+
+  const dietCard = document.querySelector('#food-diet-options .option-card.selected');
+  if (dietCard) {
+    inputs.food.dietType = dietCard.getAttribute('data-value');
+  }
+
+  const wasteCard = document.querySelector('#food-waste-options .option-card.selected');
+  if (wasteCard) {
+    inputs.food.foodWasteLevel = wasteCard.getAttribute('data-value');
+  }
+
+  inputs.waste.wasteBagsPerWeek = Number(document.getElementById('in-waste-bags').value) || 0;
+  inputs.waste.recyclingLevel = document.getElementById('in-recycling').value;
 
   const footprint = calculateTotalFootprint(
-    currentInputs.energy,
-    currentInputs.transport,
-    currentInputs.food,
-    currentInputs.waste
+    inputs.energy,
+    inputs.transport,
+    inputs.food,
+    inputs.waste
   );
 
   // Update preview panel elements
