@@ -140,7 +140,7 @@ Guidelines for your response:
   # 3. Construct Contents Payload
     contents = []
     for msg in history:
-        contents.push({
+        contents.append({
             "role": "user" if msg.get("role") == "user" else "model",
             "parts": [{"text": msg.get("text")}]
         })
@@ -177,7 +177,7 @@ Guidelines for your response:
         err_msg = e.read().decode('utf-8')
         try:
             err_json = json.loads(err_msg)
-            msg = err_json.error.message
+            msg = err_json.get('error', {}).get('message', err_msg)
         except Exception:
             msg = f"HTTP Error {e.code}"
         return jsonify({"error": f"Gemini API Error: {msg}"}), 500
