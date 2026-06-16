@@ -1,61 +1,25 @@
 /**
  * Gemini AI Eco-Advisor Client
- * Communicates with the Google Gemini API directly from the browser.
+ * Routes conversational queries through the local Python backend API proxy.
  */
 
 /**
- * Sends a conversation thread with footprint context to Gemini 1.5 Flash.
+ * Sends a conversation thread with footprint context to the Python Backend proxy.
  * @param {string} userMessage - The latest message from the user.
- * @param {string} apiKey - The user's Google Gemini API Key.
+ * @param {string} apiKey - The user's optional Google Gemini API Key (falls back to server key if configured).
  * @param {Object} footprintData - The user's current carbon breakdown (from calculator.js).
  * @param {Array} history - Previous messages in format [{role: 'user'|'model', text: ''}]
  * @returns {Promise<string>} - The AI assistant response in markdown format.
  */
 export async function getGeminiResponse(userMessage, apiKey, footprintData, history = []) {
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please set your Gemini API Key first.");
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = '/api/advisor';
   
-  // Format the system prompt guiding the AI's behavior
-  const systemPrompt = `You are Aura Eco-Advisor, a friendly, highly intelligent, and supportive AI environmental consultant.
-The user is utilizing the Aura Carbon Awareness Platform to track and reduce their carbon footprint.
-
-Here is the user's active carbon footprint profile:
-- Total Footprint: ${(footprintData.total / 1000).toFixed(1)} tonnes CO2e/year.
-- Home Utility Energy: ${footprintData.breakdown.energy.toLocaleString()} kg CO2e/year.
-- Transportation/Commute: ${footprintData.breakdown.transport.toLocaleString()} kg CO2e/year.
-- Food & Diet: ${footprintData.breakdown.food.toLocaleString()} kg CO2e/year.
-- Household Waste & Recycling: ${footprintData.breakdown.waste.toLocaleString()} kg CO2e/year.
-
-Guidelines for your response:
-1. Be encouraging and focus on positive, actionable steps.
-2. Refer to their specific footprint metrics when they ask questions (e.g., if their transport emissions are high, suggest custom transport options).
-3. Provide answers formatted in clean markdown (bullet points, bold text).
-4. Keep responses concise and practical (around 2-3 short paragraphs or clean lists).
-5. Do not make up facts. Use scientific guidelines aligned with IPCC, EPA, and DEFRA.
-`;
-
-  // Construct Gemini request contents structure
-  const contents = [];
-
-  // Add history
-  history.forEach(msg => {
-    contents.push({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.text }]
-    });
-  });
-
-  // Add latest user message pre-pended with the system context instructions
-  // Gemini 1.5 Flash supports system instructions, but prefixing it in the first message
-  // is highly reliable across all API models.
-  const contextMessage = `[Eco-Advisor Context - System Instructions: ${systemPrompt}]\n\nUser Message: ${userMessage}`;
-  contents.push({
-    role: 'user',
-    parts: [{ text: contextMessage }]
-  });
+  const payload = {
+    message: userMessage,
+    apiKey: apiKey, // optional frontend fallback key
+    footprint: footprintData,
+    history: history
+  };
 
   try {
     const response = await fetch(url, {
@@ -63,36 +27,29 @@ Guidelines for your response:
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        contents: contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 800
-        }
-      })
+      body: JSON.stringify(payload)
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      const errMsg = errData.error?.message || `HTTP ${response.status}`;
+      const errMsg = data.error || `HTTP Error ${response.status}`;
       throw new Error(errMsg);
     }
 
-    const data = await response.json();
-    const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!textResponse) {
-      throw new Error("Received an empty response from Gemini API.");
+    if (!data.response) {
+      throw new Error("Received an empty response from the backend advisor.");
     }
 
-    return textResponse;
+    return data.response;
   } catch (error) {
-    console.error("Gemini API request failed:", error);
+    console.error("Failed to fetch response from AI backend proxy:", error);
     throw error;
   }
 }
 
 /**
- * Fallback static templates in case the user does not have an API Key.
+ * Fallback static templates in case the user does not have an API Key configured either on server or client.
  * Offers context-relevant carbon savings answers locally.
  */
 export function getLocalFallbackResponse(userMessage, footprintData) {
@@ -110,7 +67,7 @@ Your total calculated carbon footprint is **${total} tonnes of CO2e** per year.
 * **Highest Sector**: **${highest.toUpperCase()}** (${footprintData.breakdown[highest].toLocaleString()} kg CO2e)
 * **Status**: ${footprintData.total <= 2000 ? "Excellent! You are meeting the IPCC 2030 climate threshold." : "Your footprint exceeds the sustainable 2.0-tonne budget. We recommend focusing on reduction goals in your **" + highest + "** category."}
 
-*For a full conversational chat, please paste a valid Google Gemini API Key in the setup panel.*`;
+*For a full conversational chat, please paste a valid Google Gemini API Key in the setup panel or configure it on the Python server.*`;
   }
 
   if (query.includes('energy') || query.includes('electricity') || query.includes('home')) {

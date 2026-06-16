@@ -164,9 +164,9 @@ const DOM = {
 
 // Initialize App
 window.addEventListener('DOMContentLoaded', () => {
-  loadStateFromLocalStorage();
   setupEventListeners();
   renderApp();
+  loadStateFromBackend();
   
   // Navigate to initial active tab (Dashboard by default)
   switchView('dashboard');
@@ -234,28 +234,56 @@ function switchView(viewId) {
   }
 }
 
-// State Persistence
-function saveStateToLocalStorage() {
+// State Persistence - SQLite Backend DB sync
+async function saveStateToBackend() {
+  // Save local storage as a robust offline backup
   localStorage.setItem('eco_platform_state', JSON.stringify(STATE));
+  
+  try {
+    await fetch('/api/profile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(STATE)
+    });
+  } catch (err) {
+    console.error("Failed to sync profile state to backend SQLite database:", err);
+  }
 }
 
-function loadStateFromLocalStorage() {
-  const saved = localStorage.getItem('eco_platform_state');
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      Object.assign(STATE, parsed);
-      
-      if (STATE.geminiApiKey) {
-        setTimeout(() => {
+async function loadStateFromBackend() {
+  try {
+    // 1. Fetch saved profile details
+    const resProfile = await fetch('/api/profile');
+    if (resProfile.ok) {
+      const dbProfile = await resProfile.json();
+      if (dbProfile && Object.keys(dbProfile).length > 0) {
+        Object.assign(STATE, dbProfile);
+        syncStateToInputs();
+        
+        if (STATE.geminiApiKey) {
           const keyInput = document.getElementById('input-api-key');
           if (keyInput) keyInput.value = STATE.geminiApiKey;
           updateKeyStatusUI(true);
-        }, 100);
+        }
       }
-    } catch (e) {
-      console.error("Failed to parse local storage state", e);
     }
+    
+    // 2. Fetch conversation history log
+    const resChat = await fetch('/api/chat');
+    if (resChat.ok) {
+      const dbChat = await resChat.json();
+      if (dbChat && dbChat.length > 0) {
+        STATE.chatHistory = dbChat;
+        renderChatLogFromHistory();
+      }
+    }
+
+    renderDashboard();
+    checkBadgeUnlocks();
+  } catch (err) {
+    console.error("Failed to restore profile details from backend SQLite database:", err);
   }
 }
 
@@ -1137,6 +1165,10 @@ window.sendUserChatMessage = async function() {
       STATE.chatHistory.shift();
     }
     saveStateToLocalStorage();
+    
+    // Log directly to backend SQLite database chat logs table
+    logChatMessageToBackend('user', userText);
+    logChatMessageToBackend('ai', responseText);
   }
 };
 
@@ -1171,4 +1203,48 @@ function parseMarkdown(text) {
     }
     return `<p>${p.replace(/\n/g, '<br>')}</p>`;
   }).join('');
+}
+
+// SQLite backend sync wrappers
+function saveStateToLocalStorage() {
+  saveStateToBackend();
+}
+
+async function logChatMessageToBackend(sender, text) {
+  try {
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ sender, text })
+    });
+  } catch (err) {
+    console.error("Failed to log chat message to backend SQLite:", err);
+  }
+}
+
+function renderChatLogFromHistory() {
+  const chatLog = document.getElementById('chat-messages-log');
+  if (!chatLog) return;
+  
+  chatLog.innerHTML = `
+    <div class="chat-message ai">
+      <p><strong>Aura Eco-Advisor:</strong> Hello! I am your personal carbon reduction assistant. I can analyze your metrics, suggest plant-based meal swaps, explain climate science, or draft custom action plans.</p>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">How can I help you improve your ecological footprint today?</p>
+    </div>
+  `;
+  
+  STATE.chatHistory.forEach(msg => {
+    const bubble = document.createElement('div');
+    if (msg.sender === 'user') {
+      bubble.className = 'chat-message user';
+      bubble.textContent = msg.text;
+    } else {
+      bubble.className = 'chat-message ai';
+      bubble.innerHTML = `<strong>Aura Eco-Advisor:</strong> ${parseMarkdown(msg.text)}`;
+    }
+    chatLog.appendChild(bubble);
+  });
+  chatLog.scrollTop = chatLog.scrollHeight;
 }
