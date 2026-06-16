@@ -57,6 +57,27 @@ def db_query(query, args=(), one=False, commit=False):
 def index():
     return app.send_static_file("index.html")
 
+# --- DEBUG FILES ENDPOINT ---
+@app.route("/api/debug-files")
+def debug_files():
+    import os
+    files_list = []
+    try:
+        for f in os.listdir("."):
+            path = os.path.join(".", f)
+            files_list.append({
+                "name": f,
+                "size": os.path.getsize(path) if os.path.isfile(path) else None,
+                "is_file": os.path.isfile(path),
+                "readable": os.access(path, os.R_OK)
+            })
+    except Exception as e:
+        return jsonify({"error": str(e)})
+    return jsonify({
+        "cwd": os.getcwd(),
+        "files": files_list
+    })
+
 # --- PROFILE ENDPOINTS ---
 @app.route("/api/profile", methods=["GET"])
 def get_profile():
