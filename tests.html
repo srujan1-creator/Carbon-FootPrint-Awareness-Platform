@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Carbon | Automated Verification Suite</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0b0f19;
+      color: #e5e7eb;
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 0.5rem;
+      color: #10b981;
+    }
+    .summary {
+      background-color: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .summary-stats {
+      font-size: 1.1rem;
+    }
+    .summary-stats span {
+      font-weight: bold;
+    }
+    .pass-count { color: #34d399; }
+    .fail-count { color: #f87171; }
+    
+    .test-case {
+      background-color: #161e2e;
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border-left: 5px solid;
+    }
+    .test-case.pass {
+      border-left-color: #10b981;
+    }
+    .test-case.fail {
+      border-left-color: #ef4444;
+      background-color: #2d1a1a;
+    }
+    .test-title {
+      font-weight: 600;
+      font-size: 1.05rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .test-status {
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      font-weight: bold;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+    .pass .test-status {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+    }
+    .fail .test-status {
+      background-color: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+    .test-details {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #9ca3af;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Aura Carbon Verification Test Suite</h1>
+  <p>Automated validation checks testing carbon emission math calculations, action recommendations, and achievements rules.</p>
+  
+  <div class="summary">
+    <div class="summary-stats">
+      Total Tests: <span id="total-tests">0</span> &nbsp;|&nbsp;
+      Passed: <span class="pass-count" id="passed-tests">0</span> &nbsp;|&nbsp;
+      Failed: <span class="fail-count" id="failed-tests">0</span>
+    </div>
+    <div id="overall-status" style="font-weight:bold; font-size:1.2rem; text-transform:uppercase;">Running...</div>
+  </div>
+
+  <div id="test-results-list"></div>
+
+  <!-- Run Tests Script -->
+  <script type="module">
+    import { 
+      calculateEnergyFootprint, 
+      calculateTransportationFootprint,
+      calculateFoodFootprint,
+      calculateWasteFootprint,
+      calculateTotalFootprint,
+      COEFFICIENTS
+    } from './calculator.js';
+
+    import { getRecommendedActions, ACTIONS_DATABASE } from './actions.js';
+    import { QuizSession } from './quiz.js';
+    import { BADGES } from './app.js';
+
+    const testResultsList = document.getElementById('test-results-list');
+    let total = 0;
+    let passed = 0;
+    let failed = 0;
+
+    function assert(condition, message, details = "") {
+      total++;
+      const isPass = !!condition;
+      if (isPass) passed++;
+      else failed++;
+
+      const div = document.createElement('div');
+      div.className = `test-case ${isPass ? 'pass' : 'fail'}`;
+      div.innerHTML = `
+        <div class="test-title">
+          <span>${message}</span>
+          <span class="test-status">${isPass ? 'Pass' : 'Fail'}</span>
+        </div>
+        ${details ? `<div class="test-details">${details}</div>` : ''}
+      `;
+      testResultsList.appendChild(div);
+      updateSummary();
+    }
+
+    function assertEqual(actual, expected, message) {
+      const condition = actual === expected;
+      const details = condition ? "" : `Expected: ${expected}\nActual: ${actual}`;
+      assert(condition, message, details);
+    }
+
+    function updateSummary() {
+      document.getElementById('total-tests').textContent = total;
+      document.getElementById('passed-tests').textContent = passed;
+      document.getElementById('failed-tests').textContent = failed;
+      
+      const overall = document.getElementById('overall-status');
+      if (failed > 0) {
+        overall.textContent = "Failures Detected";
+        overall.style.color = "#ef4444";
+      } else {
+        overall.textContent = "All Passed";
+        overall.style.color = "#10b981";
+      }
+    }
+
+    // --- TEST SUITE RUN ---
+    try {
+      // 1. Energy Calculation Tests
+      const energyInputs = {
+        electricityKwh: 300,
+        cleanEnergyShare: 50, // 50% clean multiplier
+        gasKwh: 200,
+        heatingOilLiters: 100,
+        householdMembers: 2
+      };
+      
+      const energyRes = calculateEnergyFootprint(energyInputs);
+      
+      // Expected math validation:
+      // Electricity yearly = 300 * 12 * 0.389 = 1400.4. Multiplied by 50% clean = 700.2
+      // Gas yearly = 200 * 12 * 0.181 = 434.4
+      // Oil yearly = 100 * 12 * 2.68 = 3216
+      // Household total = 700.2 + 434.4 + 3216 = 4350.6
+      // Divide by 2 members = 2175.3 per capita
+      assertEqual(energyRes.total, Math.round(4350.6 / 2), "Energy Footprint (Per Capita Calculation) with 50% Clean share");
+      assertEqual(energyRes.electricity, Math.round(700.2 / 2), "Energy - Electricity Share");
+      assertEqual(energyRes.gas, Math.round(434.4 / 2), "Energy - Gas Share");
+
+      // Test household size division bounds
+      const singleMemberEnergy = calculateEnergyFootprint({ ...energyInputs, householdMembers: 1 });
+      assertEqual(singleMemberEnergy.total, Math.round(4350.6), "Energy Footprint: Single member household should not divide emissions");
+      
+      // 2. Transport Calculation Tests
+      const transportRes = calculateTransportationFootprint({
+        carKmPerWeek: 150,
+        carFuelType: 'petrol', // 0.170 kg/km
+        busKmPerWeek: 50,      // 0.096 kg/km
+        trainKmPerWeek: 0,
+        shortHaulFlights: 2,   // 300 kg return each
+        longHaulFlights: 1     // 1600 kg return each
+      });
+      // Expected math:
+      // Car: 150 * 52 * 0.170 = 1326
+      // Bus: 50 * 52 * 0.096 = 249.6
+      // Flights: (2 * 300) + (1 * 1600) = 2200
+      // Total = 1326 + 249.6 + 2200 = 3775.6 -> 3776
+      assertEqual(transportRes.total, 3776, "Transport Footprint Calculation (Car + Bus + Flights)");
+      assertEqual(transportRes.car, 1326, "Transport - Car Emissions Share");
+      assertEqual(transportRes.publicTransit, 250, "Transport - Bus transit Emissions Share");
+      assertEqual(transportRes.flights, 2200, "Transport - Flying Emissions Share");
+
+      // 3. Food Calculation Tests
+      const foodRes = calculateFoodFootprint({
+        dietType: 'vegan',       // 600 kg
+        foodWasteLevel: 'high'   // 400 kg
+      });
+      assertEqual(foodRes.total, 1000, "Food Footprint Calculation (Vegan + High Waste)");
+      
+      // 4. Waste Calculation Tests
+      const wasteRes = calculateWasteFootprint({
+        wasteBagsPerWeek: 3,     // 3 * 52 * 2.0 = 312 kg
+        recyclingLevel: 'full',  // 50% saving
+        householdMembers: 3      // 312 / 3 = 104 kg gross. Savings: 104 * 0.5 = 52. Net: 52
+      });
+      assertEqual(wasteRes.total, 52, "Waste Footprint Calculation (Per Capita & Full Recycling)");
+
+      // 5. Total Cumulative Calculator
+      const totalRes = calculateTotalFootprint(
+        { electricityKwh: 0, cleanEnergyShare: 0, gasKwh: 0, heatingOilLiters: 0, householdMembers: 1 },
+        { carKmPerWeek: 0, carFuelType: 'petrol', busKmPerWeek: 0, trainKmPerWeek: 0, shortHaulFlights: 0, longHaulFlights: 0 },
+        { dietType: 'vegetarian', foodWasteLevel: 'low' }, // 900 + 0 = 900
+        { wasteBagsPerWeek: 0, recyclingLevel: 'none', householdMembers: 1 }
+      );
+      assertEqual(totalRes.total, 900, "Total footprint accumulator integrates sub-category methods");
+      assertEqual(totalRes.breakdown.food, 900, "Total footprint breakdown categorizes correctly");
+
+      // 6. Action Recommendations Prioritization
+      const testBreakdown = {
+        energy: 1000,
+        transport: 4000, // transport is highest!
+        food: 2000,
+        waste: 200
+      };
+      const recommendations = getRecommendedActions(testBreakdown);
+      assert(recommendations.length > 0, "Action recommended list is populated");
+      assertEqual(recommendations[0].category, "transport", "First recommended action should match the highest emission category (transport)");
+
+      // 7. Quiz Session State Validation
+      const session = new QuizSession();
+      assertEqual(session.currentQuestionIndex, 0, "Quiz Session starts at question 0");
+      const firstQ = session.getCurrentQuestion();
+      
+      // Submit correct answer to first question
+      const isCorrect = session.submitAnswer(firstQ.correctAnswer);
+      assert(isCorrect, "Answer matches correctAnswer index");
+      assertEqual(session.score, 1, "Quiz score increments by 1 on correct answer");
+      assertEqual(session.currentQuestionIndex, 1, "Quiz shifts to next index after submit");
+
+    } catch(err) {
+      assert(false, "Verification script encountered runtime error", err.stack);
+    }
+  </script>
+
+</body>
+</html>
