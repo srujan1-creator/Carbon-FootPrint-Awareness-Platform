@@ -199,10 +199,124 @@ function setupEventListeners() {
 
   // Toast close
   DOM.toastClose.addEventListener('click', hideAchievementToast);
+
+  // Brand logo click
+  const navBrandLink = document.getElementById('nav-brand-link');
+  if (navBrandLink) {
+    navBrandLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchView('dashboard');
+    });
+  }
+
+  // Dashboard Open Calculator button
+  const btnDbOpenCalc = document.getElementById('btn-db-open-calc');
+  if (btnDbOpenCalc) {
+    btnDbOpenCalc.addEventListener('click', () => {
+      switchView('calculator');
+    });
+  }
+
+  // Step 1: Energy Inputs
+  const energyInputs = [
+    'in-electricity', 'in-gas', 'in-heating-oil', 'in-household'
+  ];
+  energyInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', liveUpdateCalculatorPreview);
+  });
+
+  const cleanEnergySlider = document.getElementById('in-clean-energy');
+  if (cleanEnergySlider) {
+    cleanEnergySlider.addEventListener('input', (e) => {
+      updateCleanEnergyDisplay(e.target.value);
+      liveUpdateCalculatorPreview();
+    });
+  }
+
+  // Step 2: Transport Inputs
+  const transportInputs = [
+    'in-car-km', 'in-bus-km', 'in-train-km', 'in-short-flights', 'in-long-flights'
+  ];
+  transportInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', liveUpdateCalculatorPreview);
+  });
+
+  const carFuelSelect = document.getElementById('in-car-fuel');
+  if (carFuelSelect) {
+    carFuelSelect.addEventListener('change', liveUpdateCalculatorPreview);
+  }
+
+  // Step 3: Food options select via click on cards
+  const dietCards = document.querySelectorAll('#food-diet-options .option-card');
+  dietCards.forEach(card => {
+    card.addEventListener('click', () => {
+      selectFoodOption(card, 'food-diet-options');
+      liveUpdateCalculatorPreview();
+    });
+  });
+
+  const wasteCards = document.querySelectorAll('#food-waste-options .option-card');
+  wasteCards.forEach(card => {
+    card.addEventListener('click', () => {
+      selectFoodOption(card, 'food-waste-options');
+      liveUpdateCalculatorPreview();
+    });
+  });
+
+  // Step 4: Waste & Recycling Inputs
+  const wasteBagsInput = document.getElementById('in-waste-bags');
+  if (wasteBagsInput) {
+    wasteBagsInput.addEventListener('input', liveUpdateCalculatorPreview);
+  }
+
+  const recyclingSelect = document.getElementById('in-recycling');
+  if (recyclingSelect) {
+    recyclingSelect.addEventListener('change', liveUpdateCalculatorPreview);
+  }
+
+  // Action Filters
+  const filterBtns = document.querySelectorAll('#action-filters .filter-btn');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const category = btn.getAttribute('data-filter');
+      setActionFilter(category);
+    });
+  });
+
+  // AI Advisor Key Setup
+  const btnSaveKey = document.getElementById('btn-save-api-key');
+  if (btnSaveKey) {
+    btnSaveKey.addEventListener('click', saveGeminiKey);
+  }
+
+  // AI Advisor Quick Prompts
+  const quickPromptBtns = document.querySelectorAll('.quick-prompt-btn');
+  quickPromptBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const promptText = btn.getAttribute('data-prompt');
+      sendQuickPrompt(promptText);
+    });
+  });
+
+  // AI Advisor Chat Inputs
+  const chatInputMessage = document.getElementById('input-chat-message');
+  if (chatInputMessage) {
+    chatInputMessage.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        sendUserChatMessage();
+      }
+    });
+  }
+
+  const btnSendChat = document.querySelector('.btn-send-chat');
+  if (btnSendChat) {
+    btnSendChat.addEventListener('click', sendUserChatMessage);
+  }
 }
 
 // Router: Switch views (tabs)
-window.switchView = switchView;
 function switchView(viewId) {
   DOM.navLinks.forEach(btn => {
     if (btn.getAttribute('data-view') === viewId) {
@@ -647,7 +761,7 @@ function saveCalculatorInputsByStep(stepIndex) {
 }
 
 // --- INTERACTIVE: LIVE CALCULATOR PREVIEW ---
-window.liveUpdateCalculatorPreview = function() {
+function liveUpdateCalculatorPreview() {
   // Save current fields (even if not finalized)
   const currentInputs = {
     energy: {
@@ -667,8 +781,8 @@ window.liveUpdateCalculatorPreview = function() {
       longHaulFlights: Number(document.getElementById('in-long-flights').value) || 0
     },
     food: {
-      dietType: 'averageMeat',
-      foodWasteLevel: 'medium'
+      dietType: document.querySelector('#food-diet-options .option-card.selected').getAttribute('data-value'),
+      foodWasteLevel: document.querySelector('#food-waste-options .option-card.selected').getAttribute('data-value')
     },
     waste: {
       wasteBagsPerWeek: Number(document.getElementById('in-waste-bags').value) || 0,
@@ -676,13 +790,6 @@ window.liveUpdateCalculatorPreview = function() {
     }
   };
 
-  // Get food selected options
-  const selectedDietCard = document.querySelector('#food-diet-options .option-card.selected');
-  if (selectedDietCard) currentInputs.food.dietType = selectedDietCard.getAttribute('data-value');
-  const selectedWasteCard = document.querySelector('#food-waste-options .option-card.selected');
-  if (selectedWasteCard) currentInputs.food.foodWasteLevel = selectedWasteCard.getAttribute('data-value');
-
-  // Compute live breakdown
   const footprint = calculateTotalFootprint(
     currentInputs.energy,
     currentInputs.transport,
@@ -706,17 +813,17 @@ window.liveUpdateCalculatorPreview = function() {
     DOM.liveCompAlert.className = 'comp-target-alert warning';
     DOM.liveCompAlertText.textContent = "Footprint exceeds sustainable targets.";
   }
-};
+}
 
-window.updateCleanEnergyDisplay = function(val) {
+function updateCleanEnergyDisplay(val) {
   document.getElementById('in-clean-energy-val').textContent = `${val}%`;
-};
+}
 
-window.selectFoodOption = function(element, group) {
+function selectFoodOption(element, group) {
   const container = document.getElementById(group);
   container.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
   element.classList.add('selected');
-};
+}
 
 // --- ACTION PLAN CONTROLLER ---
 function renderActionPlan() {
@@ -768,10 +875,15 @@ function renderActionPlan() {
           </div>
         </div>
       </div>
-      <button class="btn-add-action ${isAdded ? 'active' : ''}" onclick="toggleActionGoal('${action.id}')">
-        ${isAdded ? 'Remove Goal' : 'Commit to Goal'}
-      </button>
     `;
+
+    const btn = document.createElement('button');
+    btn.className = `btn-add-action ${isAdded ? 'active' : ''}`;
+    btn.textContent = isAdded ? 'Remove Goal' : 'Commit to Goal';
+    btn.addEventListener('click', () => {
+      toggleActionGoal(action.id);
+    });
+    card.appendChild(btn);
     DOM.actionsList.appendChild(card);
   });
 
@@ -779,7 +891,7 @@ function renderActionPlan() {
   animateNumber(DOM.savingsMeterVal, 0, currentSavings, 500);
 }
 
-window.toggleActionGoal = function(actionId) {
+function toggleActionGoal(actionId) {
   const index = STATE.activeActions.indexOf(actionId);
   if (index > -1) {
     STATE.activeActions.splice(index, 1);
@@ -790,9 +902,9 @@ window.toggleActionGoal = function(actionId) {
   checkBadgeUnlocks();
   saveStateToLocalStorage();
   renderActionPlan();
-};
+}
 
-window.setActionFilter = function(category) {
+function setActionFilter(category) {
   currentActionFilter = category;
   
   const buttons = DOM.actionFilters.querySelectorAll('.filter-btn');
@@ -805,7 +917,7 @@ window.setActionFilter = function(category) {
   });
 
   renderActionPlan();
-};
+}
 
 function renderCategoryFilterCounts() {
   const counts = { all: ACTIONS_DATABASE.length, energy: 0, transport: 0, food: 0, waste: 0 };
@@ -849,7 +961,7 @@ function renderQuiz() {
       <h3>${question.question}</h3>
       <div class="quiz-options-list" id="quiz-options">
         ${question.options.map((opt, idx) => `
-          <button class="quiz-opt-btn" onclick="submitQuizAnswer(${idx})">${opt}</button>
+          <button class="quiz-opt-btn" data-index="${idx}">${opt}</button>
         `).join('')}
       </div>
       <div class="quiz-explanation-box" id="quiz-explanation" style="display: none;">
@@ -857,15 +969,30 @@ function renderQuiz() {
         <p id="quiz-explanation-text"></p>
       </div>
       <div class="quiz-next-container" id="quiz-next-container" style="display: none;">
-        <button class="btn btn-primary" onclick="nextQuizQuestion()">
+        <button class="btn btn-primary" id="btn-quiz-next">
           ${quizSession.currentQuestionIndex === totalCount - 1 ? 'Finish Quiz' : 'Next Question'} →
         </button>
       </div>
     </div>
   `;
+
+  // Bind option button event listeners
+  const optBtns = DOM.quizPanel.querySelectorAll('.quiz-opt-btn');
+  optBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.getAttribute('data-index'), 10);
+      submitQuizAnswer(idx);
+    });
+  });
+
+  // Bind next button event listener
+  const btnQuizNext = DOM.quizPanel.querySelector('#btn-quiz-next');
+  if (btnQuizNext) {
+    btnQuizNext.addEventListener('click', nextQuizQuestion);
+  }
 }
 
-window.submitQuizAnswer = function(selectedIdx) {
+function submitQuizAnswer(selectedIdx) {
   const question = quizSession.getCurrentQuestion();
   if (!question) return;
 
@@ -896,9 +1023,9 @@ window.submitQuizAnswer = function(selectedIdx) {
 
   quizSession.submitAnswer(selectedIdx);
   document.getElementById('quiz-next-container').style.display = 'flex';
-};
+}
 
-window.nextQuizQuestion = function() {
+function nextQuizQuestion() {
   if (quizSession.completed) {
     if (quizSession.score > STATE.quizHighscore) {
       STATE.quizHighscore = quizSession.score;
@@ -907,7 +1034,7 @@ window.nextQuizQuestion = function() {
     saveStateToLocalStorage();
   }
   renderQuiz();
-};
+}
 
 function renderQuizResults() {
   const pct = quizSession.getPercentScore();
@@ -927,12 +1054,18 @@ function renderQuizResults() {
         You scored <strong>${quizSession.score} / 10</strong> (${pct}%)
       </div>
       <p style="margin-bottom: 2rem; color:var(--text-muted);">${feedback}</p>
-      <button class="btn btn-primary" onclick="restartQuiz()">Try Again</button>
+      <button class="btn btn-primary" id="btn-quiz-restart">Try Again</button>
     </div>
   `;
+
+  // Bind restart button event listener
+  const btnRestart = DOM.quizPanel.querySelector('#btn-quiz-restart');
+  if (btnRestart) {
+    btnRestart.addEventListener('click', restartQuiz);
+  }
 }
 
-window.restartQuiz = function() {
+function restartQuiz() {
   quizSession.reset();
   renderQuiz();
 };
@@ -1060,7 +1193,7 @@ function updateKeyStatusUI(isSaved) {
   }
 }
 
-window.saveGeminiKey = function() {
+function saveGeminiKey() {
   const keyInput = document.getElementById('input-api-key');
   if (!keyInput) return;
   const key = keyInput.value.trim();
@@ -1077,9 +1210,9 @@ window.saveGeminiKey = function() {
     : `<p><strong>Aura Eco-Advisor:</strong> API Key removed. Reverted to local demo templates.</p>`;
   chatLog.appendChild(confirmMsg);
   chatLog.scrollTop = chatLog.scrollHeight;
-};
+}
 
-window.sendUserChatMessage = async function() {
+async function sendUserChatMessage() {
   const inputEl = document.getElementById('input-chat-message');
   if (!inputEl) return;
   const userText = inputEl.value.trim();
@@ -1170,19 +1303,31 @@ window.sendUserChatMessage = async function() {
     logChatMessageToBackend('user', userText);
     logChatMessageToBackend('ai', responseText);
   }
-};
+}
 
-window.sendQuickPrompt = function(promptText) {
+function sendQuickPrompt(promptText) {
   const inputEl = document.getElementById('input-chat-message');
   if (inputEl) {
     inputEl.value = promptText;
-    window.sendUserChatMessage();
+    sendUserChatMessage();
   }
-};
+}
+
+function escapeHTML(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 function parseMarkdown(text) {
+  // Escape user/AI input tags to protect against XSS
+  const safeText = escapeHTML(text);
+  
   // Very simple client-side markdown parser
-  let html = text
+  let html = safeText
     .replace(/^### (.*$)/gim, '<h3>$1</h3>')
     .replace(/^## (.*$)/gim, '<h2>$1</h2>')
     .replace(/^# (.*$)/gim, '<h1>$1</h1>')

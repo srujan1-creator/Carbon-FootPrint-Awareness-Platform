@@ -16,7 +16,7 @@
     
     <!-- Navigation Bar -->
     <nav class="navbar">
-      <a href="#" class="nav-brand" onclick="switchView('dashboard')">
+      <a href="#" class="nav-brand" id="nav-brand-link">
         <!-- Brand Leaf SVG Logo with gradient matching screenshot -->
         <svg viewBox="0 0 28 28" width="28" height="28" stroke="url(#leafGradient)" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
           <defs>
@@ -27,7 +27,7 @@
           </defs>
           <path d="M9.5 23.5 C 8 21.5, 7.5 18, 8 15.5 C 8 9.5, 12.5 5.5, 18 5.5 C 22.5 5.5, 24 9, 24 13 C 24 17, 20.5 19.5, 15.5 19.5 C 12.5 19.5, 9.5 23.5, 9.5 23.5 Z"></path>
         </svg>
-        <span>Aura Carbon</span>
+        <h1 class="nav-brand-title">Aura Carbon</h1>
       </a>
       
       <button class="menu-toggle" id="mobile-menu-toggle" aria-label="Toggle Navigation Menu">☰</button>
@@ -113,7 +113,7 @@
               </div>
             </div>
             
-            <button class="btn btn-primary" onclick="switchView('calculator')">
+            <button class="btn btn-primary" id="btn-db-open-calc">
               Open Carbon Calculator
             </button>
           </div>
@@ -174,7 +174,7 @@
             </p>
             <div class="slider-container">
               <div class="range-val-bubble" id="projection-year-label">10 Years</div>
-              <input type="range" id="projection-year-slider" min="1" max="30" value="10">
+              <input type="range" id="projection-year-slider" min="1" max="30" value="10" aria-label="Future projection time horizon slider">
               <div class="slider-labels">
                 <span>1 Year</span>
                 <span>15 Years</span>
@@ -292,27 +292,27 @@
                 <div class="form-group-grid">
                   <div class="form-group">
                     <label for="in-electricity">Electricity Usage <span class="input-hint">(kWh/month)</span></label>
-                    <input type="number" id="in-electricity" min="0" value="250" placeholder="e.g. 250" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-electricity" min="0" value="250" placeholder="e.g. 250">
                   </div>
                   
                   <div class="form-group">
                     <label for="in-clean-energy">Clean Electricity Share <span class="input-hint" id="in-clean-energy-val">0%</span></label>
-                    <input type="range" id="in-clean-energy" min="0" max="100" value="0" oninput="updateCleanEnergyDisplay(this.value); liveUpdateCalculatorPreview();">
+                    <input type="range" id="in-clean-energy" min="0" max="100" value="0">
                   </div>
                   
                   <div class="form-group">
                     <label for="in-gas">Natural Gas Usage <span class="input-hint">(kWh/month)</span></label>
-                    <input type="number" id="in-gas" min="0" value="150" placeholder="e.g. 150" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-gas" min="0" value="150" placeholder="e.g. 150">
                   </div>
                   
                   <div class="form-group">
                     <label for="in-heating-oil">Heating Oil <span class="input-hint">(Liters/month)</span></label>
-                    <input type="number" id="in-heating-oil" min="0" value="0" placeholder="e.g. 0" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-heating-oil" min="0" value="0" placeholder="e.g. 0">
                   </div>
                   
                   <div class="form-group full-width">
                     <label for="in-household">Household Size <span class="input-hint">(Number of members)</span></label>
-                    <input type="number" id="in-household" min="1" value="1" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-household" min="1" value="1">
                   </div>
                 </div>
 
@@ -335,12 +335,12 @@
                 <div class="form-group-grid">
                   <div class="form-group">
                     <label for="in-car-km">Weekly Car Mileage <span class="input-hint">(km/week)</span></label>
-                    <input type="number" id="in-car-km" min="0" value="120" placeholder="e.g. 120" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-car-km" min="0" value="120" placeholder="e.g. 120">
                   </div>
                   
                   <div class="form-group">
                     <label for="in-car-fuel">Car Fuel / Engine Type</label>
-                    <select id="in-car-fuel" onchange="liveUpdateCalculatorPreview()">
+                    <select id="in-car-fuel">
                       <option value="petrol">Petrol (Standard)</option>
                       <option value="diesel">Diesel</option>
                       <option value="hybrid">Hybrid</option>
@@ -350,22 +350,22 @@
                   
                   <div class="form-group">
                     <label for="in-bus-km">Bus Commute <span class="input-hint">(km/week)</span></label>
-                    <input type="number" id="in-bus-km" min="0" value="20" placeholder="e.g. 20" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-bus-km" min="0" value="20" placeholder="e.g. 20">
                   </div>
                   
                   <div class="form-group">
                     <label for="in-train-km">Train Commute <span class="input-hint">(km/week)</span></label>
-                    <input type="number" id="in-train-km" min="0" value="30" placeholder="e.g. 30" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-train-km" min="0" value="30" placeholder="e.g. 30">
                   </div>
                   
                   <div class="form-group">
                     <label for="in-short-flights">Short flights <span class="input-hint">(Return trips/year)</span></label>
-                    <input type="number" id="in-short-flights" min="0" value="1" placeholder="e.g. 1" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-short-flights" min="0" value="1" placeholder="e.g. 1">
                   </div>
                   
                   <div class="form-group">
                     <label for="in-long-flights">Long flights <span class="input-hint">(Return trips/year)</span></label>
-                    <input type="number" id="in-long-flights" min="0" value="0" placeholder="e.g. 0" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-long-flights" min="0" value="0" placeholder="e.g. 0">
                   </div>
                 </div>
 
@@ -389,27 +389,27 @@
                   <div class="form-group" style="margin-bottom: 1.5rem;">
                     <label>What best describes your average diet?</label>
                     <div class="option-cards-grid" id="food-diet-options">
-                      <div class="option-card" data-value="heavyMeat" onclick="selectFoodOption(this, 'food-diet-options'); liveUpdateCalculatorPreview();">
+                      <div class="option-card" data-value="heavyMeat">
                         <span style="font-size:1.5rem">🥩</span>
                         <span class="opt-title">Heavy Meat</span>
                         <span class="opt-desc">Daily red meat</span>
                       </div>
-                      <div class="option-card selected" data-value="averageMeat" onclick="selectFoodOption(this, 'food-diet-options'); liveUpdateCalculatorPreview();">
+                      <div class="option-card selected" data-value="averageMeat">
                         <span style="font-size:1.5rem">🍗</span>
                         <span class="opt-title">Average Meat</span>
                         <span class="opt-desc">Moderate poultry</span>
                       </div>
-                      <div class="option-card" data-value="lowMeat" onclick="selectFoodOption(this, 'food-diet-options'); liveUpdateCalculatorPreview();">
+                      <div class="option-card" data-value="lowMeat">
                         <span style="font-size:1.5rem">🐟</span>
                         <span class="opt-title">Low Meat</span>
                         <span class="opt-desc">Infrequent meat</span>
                       </div>
-                      <div class="option-card" data-value="vegetarian" onclick="selectFoodOption(this, 'food-diet-options'); liveUpdateCalculatorPreview();">
+                      <div class="option-card" data-value="vegetarian">
                         <span style="font-size:1.5rem">🥚</span>
                         <span class="opt-title">Vegetarian</span>
                         <span class="opt-desc">No meat</span>
                       </div>
-                      <div class="option-card" data-value="vegan" onclick="selectFoodOption(this, 'food-diet-options'); liveUpdateCalculatorPreview();">
+                      <div class="option-card" data-value="vegan">
                         <span style="font-size:1.5rem">🥑</span>
                         <span class="opt-title">Vegan</span>
                         <span class="opt-desc">Plant-based</span>
@@ -420,17 +420,17 @@
                   <div class="form-group">
                     <label>How much food waste is generated in your home?</label>
                     <div class="option-cards-grid" id="food-waste-options">
-                      <div class="option-card" data-value="low" onclick="selectFoodOption(this, 'food-waste-options'); liveUpdateCalculatorPreview();">
+                      <div class="option-card" data-value="low">
                         <span style="font-size:1.5rem">🥣</span>
                         <span class="opt-title">Very Little</span>
                         <span class="opt-desc">Plan & freeze</span>
                       </div>
-                      <div class="option-card selected" data-value="medium" onclick="selectFoodOption(this, 'food-waste-options'); liveUpdateCalculatorPreview();">
+                      <div class="option-card selected" data-value="medium">
                         <span style="font-size:1.5rem">🗑️</span>
                         <span class="opt-title">Moderate</span>
                         <span class="opt-desc">Some discarded</span>
                       </div>
-                      <div class="option-card" data-value="high" onclick="selectFoodOption(this, 'food-waste-options'); liveUpdateCalculatorPreview();">
+                      <div class="option-card" data-value="high">
                         <span style="font-size:1.5rem">🍎</span>
                         <span class="opt-title">Substantial</span>
                         <span class="opt-desc">Regularly throw out</span>
@@ -458,12 +458,12 @@
                 <div class="form-group-grid" style="width: 100%;">
                   <div class="form-group">
                     <label for="in-waste-bags">Rubbish Bags/Week <span class="input-hint">(Landfill rubbish)</span></label>
-                    <input type="number" id="in-waste-bags" min="0" value="2" placeholder="e.g. 2" oninput="liveUpdateCalculatorPreview()">
+                    <input type="number" id="in-waste-bags" min="0" value="2" placeholder="e.g. 2">
                   </div>
                   
                   <div class="form-group">
                     <label for="in-recycling">Household Recycling Level</label>
-                    <select id="in-recycling" onchange="liveUpdateCalculatorPreview()">
+                    <select id="in-recycling">
                       <option value="none">No active recycling</option>
                       <option value="partial" selected>Partial (some paper/cans)</option>
                       <option value="full">Full recycling (glass, paper, plastic, metal)</option>
@@ -528,7 +528,7 @@
       <!-- ==================== 3. ACTION PLAN VIEW ==================== -->
       <section id="actions-view" class="view-section">
         <div class="section-header">
-          <h1>Carbon Reduction Action Plan</h1>
+          <h2>Carbon Reduction Action Plan</h2>
           <p class="section-subtitle">Select actions to commit to and dynamically estimate your carbon footprint reductions.</p>
         </div>
 
@@ -551,23 +551,23 @@
             <div class="glass-panel action-filters" id="action-filters">
               <h3 class="filter-title">Filter Categories</h3>
               <div class="filter-list">
-                <button class="filter-btn active" data-filter="all" onclick="setActionFilter('all')">
+                <button class="filter-btn active" data-filter="all">
                   <span>All Recommended</span>
                   <span class="badge">0</span>
                 </button>
-                <button class="filter-btn" data-filter="energy" onclick="setActionFilter('energy')">
+                <button class="filter-btn" data-filter="energy">
                   <span>⚡ Home Energy</span>
                   <span class="badge">0</span>
                 </button>
-                <button class="filter-btn" data-filter="transport" onclick="setActionFilter('transport')">
+                <button class="filter-btn" data-filter="transport">
                   <span>🚗 Transportation</span>
                   <span class="badge">0</span>
                 </button>
-                <button class="filter-btn" data-filter="food" onclick="setActionFilter('food')">
+                <button class="filter-btn" data-filter="food">
                   <span>🥗 Food & Diet</span>
                   <span class="badge">0</span>
                 </button>
-                <button class="filter-btn" data-filter="waste" onclick="setActionFilter('waste')">
+                <button class="filter-btn" data-filter="waste">
                   <span>♻️ Waste & recycling</span>
                   <span class="badge">0</span>
                 </button>
@@ -587,7 +587,7 @@
       <!-- ==================== 4. QUIZ & EDUCATION VIEW ==================== -->
       <section id="quiz-view" class="view-section">
         <div class="section-header">
-          <h1>Carbon Literacy Hub</h1>
+          <h2>Carbon Literacy Hub</h2>
           <p class="section-subtitle">Test your environmental knowledge and browse educational facts about climate change.</p>
         </div>
 
@@ -633,7 +633,7 @@
       <!-- ==================== 5. ACHIEVEMENTS VIEW ==================== -->
       <section id="achievements-view" class="view-section">
         <div class="section-header">
-          <h1>Badges & Achievements</h1>
+          <h2>Badges & Achievements</h2>
           <p class="section-subtitle">Unlock achievements by adopting reduction targets, calculating footprints, and scoring in our quiz.</p>
         </div>
 
@@ -645,7 +645,7 @@
       <!-- ==================== 6. AI ADVISOR VIEW ==================== -->
       <section id="ai-view" class="view-section">
         <div class="section-header">
-          <h1>AI Eco-Advisor</h1>
+          <h2>AI Eco-Advisor</h2>
           <p class="section-subtitle">Live, personalized climate action recommendations powered by Google Gemini AI.</p>
         </div>
 
@@ -661,8 +661,8 @@
                 Enter a Google Gemini API Key to enable conversational insights. Keys are saved locally.
               </p>
               <div class="api-key-input-container">
-                <input type="password" id="input-api-key" placeholder="Paste Gemini API Key...">
-                <button class="btn-save-key" onclick="saveGeminiKey()">Save</button>
+                <input type="password" id="input-api-key" placeholder="Paste Gemini API Key..." aria-label="Google Gemini API Key">
+                <button class="btn-save-key" id="btn-save-api-key">Save</button>
               </div>
               <div class="key-status-text missing" id="api-key-status">
                 <span>●</span> <span id="api-key-status-text">Demo Mode (No key configured)</span>
@@ -673,13 +673,13 @@
             <div class="glass-panel quick-prompts-card">
               <h3 style="font-size:1.05rem; font-weight:700;">Quick Advisor Inquiries</h3>
               <div class="quick-prompt-list">
-                <button class="quick-prompt-btn" onclick="sendQuickPrompt('Analyze my current footprint and give me a summary.')">
+                <button class="quick-prompt-btn" data-prompt="Analyze my current footprint and give me a summary.">
                   📊 Analyze Footprint Profile
                 </button>
-                <button class="quick-prompt-btn" onclick="sendQuickPrompt('Suggest a customized home energy conservation plan based on my utility metrics.')">
+                <button class="quick-prompt-btn" data-prompt="Suggest a customized home energy conservation plan based on my utility metrics.">
                   ⚡ Home Energy Savings Plan
                 </button>
-                <button class="quick-prompt-btn" onclick="sendQuickPrompt('What are some effective ways to reduce my car commute emissions?')">
+                <button class="quick-prompt-btn" data-prompt="What are some effective ways to reduce my car commute emissions?">
                   🚗 Car Commute Adjustments
                 </button>
               </div>
@@ -700,8 +700,8 @@
 
             <!-- Chat inputs bar -->
             <div class="chat-input-bar">
-              <input type="text" id="input-chat-message" placeholder="Ask Eco-Advisor about carbon reductions..." onkeydown="if(event.key === 'Enter') sendUserChatMessage()">
-              <button class="btn-send-chat" onclick="sendUserChatMessage()" aria-label="Send Message">
+              <input type="text" id="input-chat-message" placeholder="Ask Eco-Advisor about carbon reductions..." aria-label="Chat Message Input">
+              <button class="btn-send-chat" aria-label="Send Message">
                 <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
               </button>
             </div>

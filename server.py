@@ -184,6 +184,15 @@ Guidelines for your response:
     except Exception as e:
         return jsonify({"error": f"Connection Error: {str(e)}"}), 500
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Content-Security-Policy'] = "default-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
+    response.headers['Referrer-Policy'] = 'no-referrer-when-downgrade'
+    return response
+
 if __name__ == "__main__":
     init_db()
     # Run server locally on port 8000

@@ -1929,3 +1929,14 @@ button.btn-send-chat svg {
     grid-template-columns: 1fr;
   }
 }
+
+.nav-brand-title {
+  margin: 0;
+  padding: 0;
+  font-size: 1.45rem;
+  font-weight: 850;
+  font-family: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  display: inline;
+}
